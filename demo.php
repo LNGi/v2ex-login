@@ -1,15 +1,15 @@
 <?php
 
-	 $v2ex = new V2EX();
+	$v2ex = new V2EX();
+	//登陆
+    $v2ex->login('账号','密码');
+		//需要代理的配置代理
+		//$v2ex->setProxy("127.0.0.1", 8888)->login('账号','密码');
+	//执行签到
+    $v2ex->signin();
 
-	 $v2ex->login('用户名','密码');
 
-     //如果需要配置代理ip，使用如下
-     //$v2ex->setProxy("代理ip", 代理端口)->login('用户名','密码');
-
-
-
-    function __autoload($className){  //自动引入类库
-         include './class/'.$className.'.class.php';
-     }
+	function __autoload($className){  //自动引入类库
+	    include './class/'.$className.'.class.php';
+    }
 ?>

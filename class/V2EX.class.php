@@ -7,12 +7,23 @@ class V2EX
 {
     private $userName;  //用户名
     private $passwd;    //密码
-   // private $ch;        //curl handle
+    // private $ch;        //curl handle
     private $cookie;    //cookie
     private $html;      //html
     private $once;      //once值
 
-    private static $loginURL = "http://www.v2ex.com/signin";
+    //登陆页面（获取cookie，获取once）
+    private static $API_LOGINPAGE    = "http://www.v2ex.com/signin";
+
+    //登陆POST地址
+    private static $API_LOGIN        = "http://www.v2ex.com/signin";
+
+    //签到页面（获取once）
+    private static $API_SIGNINPAGE   = "http://www.v2ex.com/signin";
+
+    //提交签到地址
+    private static $API_SIGNIN       = "http://www.v2ex.com/mission/daily/redeem?once=";
+
 
     private static $header = array(
         'User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36',
@@ -54,7 +65,7 @@ class V2EX
         $this->passwd = $passwd;
 
         //第一次请求登陆页面，为了获取cookie和once
-        $this->get(self::$loginURL);
+        $this->get(self::$API_LOGINPAGE);
 
         //获取登陆参数：cookie
         $this->getCookie($this->html);
@@ -63,7 +74,7 @@ class V2EX
         $this->getOnce($this->html);
 
         //开始post提交登陆
-        $this->post(self::$loginURL,
+        $this->post(self::$API_LOGIN,
             array('u' => $this->userName,
                 'p' => $this->passwd,
                 'once' => $this->once,
@@ -79,10 +90,29 @@ class V2EX
 
     }
 
+    public function signin()
+    {
+        $this->get(self::$API_SIGNINPAGE, $this->cookie);
+
+        $this->getCookie($this->html);
+
+        $this->getOnce($this->html);
+
+        $siginURL = self::$API_SIGNIN . $this->once;
+
+        //签到
+        $this->get($siginURL, $this->cookie);
+
+        echo $this->html;
+
+
+
+
+    }
+
     public function get($url, $cookie = null, $options = array())
     {
         $ch = curl_init($url);
-        //curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, self::$header);
         curl_setopt_array($ch, self::$optionsCommon);
         if ($cookie !== null) {
@@ -91,15 +121,14 @@ class V2EX
         $this->html = curl_exec($ch);
         curl_close($ch);
         if ($this->html === false) {
-            exit("请求失败！");
+            exit("GET请求失败！");
         }
         return $this->html;
     }
 
     public function post($url, $field = array(), $options)
     {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
+        $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, self::$header);
         curl_setopt_array($ch, self::$optionsCommon);
         curl_setopt($ch, CURLOPT_POST, 1);
@@ -115,12 +144,19 @@ class V2EX
     }
 
     /**
-     * 获取V2EX中校验码once
-     *
+     * 获取登陆页面和签到
+     * 页面中的校验码once
      */
     private function getOnce($html)
     {
-        preg_match("#value=\"(\d+).*once#", $html, $matches);
+        if (preg_match("/value=\"(\d+).*once/", $html, $matches)) {
+
+        } elseif (preg_match("/once=(\d+)/", $html, $matches)) {
+
+        } else {
+            exit("获取once失败");
+        }
+
         $this->once = $matches[1];
         //file_put_contents("once.txt", $this->once);
         return $this->once;
@@ -132,11 +168,13 @@ class V2EX
      */
     private function getCookie($html)
     {
-        preg_match_all("/set\-cookie:([^\r\n]*)/i", $html, $matches);
-        foreach ($matches[1] as $value) {
-            $this->cookie .= $value;
+        if (preg_match_all("/set\-cookie:([^\r\n]*)/i", $html, $matches)) {
+            foreach ($matches[1] as $value) {
+                $this->cookie .= $value;
+            }
+            file_put_contents("cookie.txt", $this->cookie);
         }
-        file_put_contents("cookie.txt", $this->cookie);
+
         return $this->cookie;
     }
 
@@ -145,10 +183,10 @@ class V2EX
      * 判断是否登陆成功
      * @return bool
      */
-    private function isLogined()
-    {
-        return true;
-    }
+    //    private function isLogined()
+    //    {
+    //        return true;
+    //    }
 
 
 }
